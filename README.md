@@ -8,6 +8,8 @@ Personal fitness logger PWA. Built for one user, one 15-month plan, one phone.
 - **Dexie.js** (IndexedDB) for structured local storage; `localStorage` for settings.
 - **Zustand** for UI state, **Framer Motion** for sheets, **Recharts** for charts.
 - **PWA**: installable on iOS via Safari → Share → Add to Home Screen.
+- **Nutrition tracking**: meals + addons (supplements, macros, etc).
+- **Gym logging**: session tracking, progressive overload, backfill for past workouts.
 
 Everything runs offline. All data stays on the device.
 
