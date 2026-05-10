@@ -10,6 +10,7 @@ import {
 import { sessionRepo } from '@/application/repos'
 import type { WorkoutSession } from '@/domain/training/entities/WorkoutSession'
 import type { GymDeviationReason } from '@/constants/deviationReasons'
+import type { SessionType } from '@/domain/planning/value-objects/SessionType'
 
 interface SessionState {
   active: WorkoutSession | null
@@ -17,7 +18,7 @@ interface SessionState {
   busy: boolean
   loadActive: () => Promise<void>
   setActive: (s: WorkoutSession | null) => void
-  startSession: () => Promise<WorkoutSession>
+  startSession: (sessionTypeOverride?: Exclude<SessionType, 'REST'>) => Promise<WorkoutSession>
   asPlanned: (exerciseLogId: string, setNumber: number) => Promise<void>
   deviation: (exerciseLogId: string, setNumber: number, weight: number, reps: number, reason: GymDeviationReason) => Promise<void>
   skipExercise: (exerciseLogId: string, reason: GymDeviationReason) => Promise<void>
@@ -37,10 +38,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   setActive: (s) => set({ active: s }),
 
-  async startSession() {
+  async startSession(sessionTypeOverride) {
     set({ busy: true })
     try {
-      const { session } = await checkIn()
+      const { session } = await checkIn(new Date(), { sessionTypeOverride })
       set({ active: session })
       return session
     } finally {

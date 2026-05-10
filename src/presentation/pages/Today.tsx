@@ -10,16 +10,22 @@ import { ProtocolChecklist } from '../components/health/ProtocolChecklist'
 import { MealCard } from '../components/nutrition/MealCard'
 import { MacroBar } from '../components/nutrition/MacroBar'
 import { MealLogSheet } from '../components/nutrition/MealLogSheet'
+import { AddonsCard } from '../components/nutrition/AddonsCard'
 import { logMeal } from '@/application/nutrition/mealUseCases'
+import { incrementAddon } from '@/application/nutrition/addonUseCases'
 import { lookupMeal } from '@/data'
 import { ZERO_MACROS, addMacros } from '@/domain/planning/value-objects/MacroTargets'
+import { ADDON_MACROS, type AddonKind } from '@/domain/nutrition/value-objects/Addon'
 import type { MealLog } from '@/domain/nutrition/entities/MealLog'
+import { BottomSheet } from '../components/shared/BottomSheet'
+import type { SessionType } from '@/domain/planning/value-objects/SessionType'
 
 export function Today() {
   const nav = useNavigate()
   const { loaded, info, isRestDay, activeBreak, todaySession, nutrition, load, setNutrition } = useTodayStore()
   const startSession = useSessionStore(s => s.startSession)
   const [mealOpen, setMealOpen] = useState<MealLog | null>(null)
+  const [trainAnywayOpen, setTrainAnywayOpen] = useState(false)
 
   useEffect(() => { void load() }, [load])
 
@@ -27,19 +33,41 @@ export function Today() {
     return <div className="screen px-md flex items-center justify-center text-text-secondary">Loading…</div>
   }
 
-  const onCheckIn = async () => {
-    const session = await startSession()
+  const onCheckIn = async (override?: Exclude<SessionType, 'REST'>) => {
+    const session = await startSession(override)
     if (session) nav('/session/active')
   }
 
-  // Compute actual macros from logs (planned macros for meals marked eaten/swap).
-  const actualMacros = (nutrition?.mealLogs ?? []).reduce((acc, m) => {
+  const adhocOptions: { type: Exclude<SessionType, 'REST'>; label: string }[] =
+    info.phase === 'PHASE_1'
+      ? [{ type: 'FULL_BODY', label: 'Full body' }]
+      : [
+          { type: 'PUSH_1', label: 'Push 1' },
+          { type: 'PUSH_2', label: 'Push 2' },
+          { type: 'PULL_1', label: 'Pull 1' },
+          { type: 'PULL_2', label: 'Pull 2' },
+          { type: 'LEGS_1', label: 'Legs 1' },
+          { type: 'LEGS_2', label: 'Legs 2' },
+        ]
+
+  // Compute actual macros from logs (planned macros for meals marked eaten/swap, plus add-ons).
+  const mealMacros = (nutrition?.mealLogs ?? []).reduce((acc, m) => {
     if (m.status === 'EATEN_AS_PLANNED' || m.status === 'EATEN_WITH_SWAP') {
       const planned = lookupMeal(nutrition!.phase, m.mealSlot, nutrition!.isRestDay)
       if (planned) return addMacros(acc, planned.macros)
     }
     return acc
   }, ZERO_MACROS)
+  const addonMacros = (nutrition?.addons ?? []).reduce((acc, a) => {
+    const m = ADDON_MACROS[a.kind]
+    return addMacros(acc, {
+      protein: m.protein * a.count,
+      carbs: m.carbs * a.count,
+      fats: m.fats * a.count,
+      calories: m.calories * a.count,
+    })
+  }, ZERO_MACROS)
+  const actualMacros = addMacros(mealMacros, addonMacros)
 
   return (
     <div className="screen px-md space-y-md pt-md">
@@ -76,7 +104,7 @@ export function Today() {
                   Resume session
                 </button>
               ) : (
-                <button onClick={onCheckIn} className="btn-primary mt-md">Check in</button>
+                <button onClick={() => onCheckIn()} className="btn-primary mt-md">Check in</button>
               )}
             </div>
           ) : (
@@ -85,6 +113,19 @@ export function Today() {
               <div className="text-body-md text-text-secondary mt-1">
                 No gym today. Macros are set for a rest day.
               </div>
+              {todaySession?.status === 'COMPLETED' ? (
+                <div className="mt-md text-status-success font-display uppercase tracking-wider">
+                  ✅ Trained anyway
+                </div>
+              ) : todaySession?.status === 'IN_PROGRESS' ? (
+                <button onClick={() => nav('/session/active')} className="btn-primary mt-md">
+                  Resume session
+                </button>
+              ) : (
+                <button onClick={() => setTrainAnywayOpen(true)} className="btn-secondary mt-md">
+                  Train anyway
+                </button>
+              )}
             </div>
           )}
 
@@ -109,12 +150,44 @@ export function Today() {
                   />
                 ))}
               </div>
+
+              <AddonsCard
+                log={nutrition}
+                onChange={async (kind: AddonKind, delta: number) => {
+                  const next = await incrementAddon(nutrition, kind, delta)
+                  setNutrition(next)
+                }}
+              />
             </section>
           )}
         </>
       )}
 
       <ProtocolChecklist />
+
+      <BottomSheet
+        open={trainAnywayOpen}
+        onClose={() => setTrainAnywayOpen(false)}
+        title="Train anyway"
+      >
+        <div className="text-body-sm text-text-secondary mb-md">
+          Pick a session type. This logs an extra workout on a rest day.
+        </div>
+        <div className="space-y-sm">
+          {adhocOptions.map(opt => (
+            <button
+              key={opt.type}
+              className="btn-secondary"
+              onClick={async () => {
+                setTrainAnywayOpen(false)
+                await onCheckIn(opt.type)
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </BottomSheet>
 
       <MealLogSheet
         open={!!mealOpen}

@@ -6,6 +6,7 @@ import { SessionSummary } from './presentation/pages/SessionSummary'
 import { Progress } from './presentation/pages/Progress'
 import { History } from './presentation/pages/History'
 import { Settings } from './presentation/pages/Settings'
+import { Backfill } from './presentation/pages/Backfill'
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/progress" element={<Progress />} />
         <Route path="/history" element={<History />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/settings/backfill" element={<Backfill />} />
         <Route path="/session/active" element={<ActiveSession />} />
         <Route path="/session/summary" element={<SessionSummary />} />
         <Route path="*" element={<Navigate to="/" replace />} />

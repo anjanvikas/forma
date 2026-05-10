@@ -8,6 +8,7 @@ import type { WorkoutSession } from '@/domain/training/entities/WorkoutSession'
 import type { ExerciseLog } from '@/domain/training/entities/ExerciseLog'
 import type { SetLog } from '@/domain/training/entities/SetLog'
 import type { GymDeviationReason } from '@/constants/deviationReasons'
+import type { SessionType } from '@/domain/planning/value-objects/SessionType'
 import { breakRepo } from '../repos'
 
 export interface CheckInResult {
@@ -15,7 +16,11 @@ export interface CheckInResult {
   alreadyExisted: boolean
 }
 
-export async function checkIn(now: Date = new Date()): Promise<CheckInResult> {
+export interface CheckInOptions {
+  sessionTypeOverride?: Exclude<SessionType, 'REST'>
+}
+
+export async function checkIn(now: Date = new Date(), opts: CheckInOptions = {}): Promise<CheckInResult> {
   const date = PhaseCalendar.toISODate(now)
   const breaks = await breakRepo.getAll()
   const calendar = new PhaseCalendar(breaks)
@@ -23,8 +28,8 @@ export async function checkIn(now: Date = new Date()): Promise<CheckInResult> {
   if (calendar.isOnBreak(now)) {
     throw new Error('Cannot check in during a break — resume the plan first.')
   }
-  if (calendar.isRestDay(now)) {
-    throw new Error('Today is a rest day. No check-in expected.')
+  if (calendar.isRestDay(now) && !opts.sessionTypeOverride) {
+    throw new Error('Today is a rest day. Pick a session type to train anyway.')
   }
 
   const existingByDate = await sessionRepo.findByDate(date)
@@ -43,7 +48,7 @@ export async function checkIn(now: Date = new Date()): Promise<CheckInResult> {
   }
 
   const info = calendar.currentInfo(now)
-  const sessionType = calendar.sessionType(now)
+  const sessionType = opts.sessionTypeOverride ?? calendar.sessionType(now)
   const exercises = exercisesFor(info.phase, sessionType)
   const settings = SettingsStorage.load()
 

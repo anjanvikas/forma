@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { PLAN_START_DATE } from '@/constants/plan'
 import { SettingsStorage, type Settings as S } from '@/infrastructure/storage/SettingsStorage'
@@ -28,6 +29,7 @@ export function Settings() {
   const [pauseOpen, setPauseOpen] = useState(false)
   const [pauseReason, setPauseReason] = useState<BreakReason | null>(null)
   const reload = useTodayStore(s => s.load)
+  const nav = useNavigate()
 
   useEffect(() => {
     void breakRepo.getActive().then(setActiveBreak)
@@ -76,6 +78,10 @@ export function Settings() {
         ) : (
           <button onClick={() => setPauseOpen(true)} className="btn-secondary">Pause plan</button>
         )}
+
+        <button onClick={() => nav('/settings/backfill')} className="btn-secondary">
+          Backfill past sessions
+        </button>
       </section>
 
       <section className="space-y-md">

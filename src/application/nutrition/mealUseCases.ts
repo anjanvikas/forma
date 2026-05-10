@@ -39,6 +39,7 @@ export async function ensureNutritionLog(now: Date = new Date()): Promise<DailyN
       loggedAt: null,
       createdAt: Date.now(),
     })),
+    addons: [],
     createdAt: Date.now(),
   }
   await nutritionRepo.save(log)
