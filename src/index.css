@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg-base text-text-primary font-body antialiased;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button {
+    @apply select-none;
+  }
+
+  input, textarea {
+    @apply outline-none;
+  }
+}
+
+@layer components {
+  .screen {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    @apply min-h-full;
+  }
+
+  .tab-bar {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .card {
+    @apply bg-bg-surface rounded-card border border-border-subtle p-md;
+  }
+
+  .chip {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full
+           bg-bg-elevated text-text-primary text-body-sm font-medium px-3 py-2
+           transition-all duration-100 active:scale-95;
+  }
+
+  .chip-active {
+    @apply bg-accent text-text-inverse;
+  }
+
+  .btn-primary {
+    @apply w-full h-14 rounded-card bg-accent text-text-inverse
+           font-display font-semibold uppercase tracking-wide text-[18px]
+           transition-transform duration-100 active:scale-[0.97]
+           active:bg-accent-dim disabled:bg-bg-input disabled:text-text-tertiary;
+  }
+
+  .btn-secondary {
+    @apply w-full h-14 rounded-card bg-bg-elevated border border-border-default
+           text-text-primary font-display font-semibold uppercase tracking-wide text-[18px]
+           transition-transform duration-100 active:scale-[0.97];
+  }
+
+  .label-caps {
+    @apply text-body-sm uppercase tracking-wider text-text-secondary font-medium;
+  }
+}
